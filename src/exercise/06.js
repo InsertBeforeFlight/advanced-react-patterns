@@ -26,6 +26,31 @@ function toggleReducer(state, {type, initialState}) {
   }
 }
 
+function useControlledSwitchWarning(controlPropValue, controlPropName, componentName) {
+  const isControlled = controlPropValue !== null;
+  const { current: previouslyControlled } = React.useRef(isControlled);
+  React.useEffect(() => {
+    warning(
+      isControlled && !previouslyControlled,
+      `${componentName} changed from uncontrolled to controlled`
+    )
+    warning(
+      !isControlled && previouslyControlled,
+      `${componentName} changed from controlled to uncontrolled`
+    )
+  }, [componentName, controlPropName, isControlled, previouslyControlled])
+}
+
+function useOnChangeReadOnlyWarning(controlPropValue, controlPropName, componentName, hasOnChange, readOnly, readOnlyProp, initialValueProp, onChangeProp) {
+  const isControlled = controlPropValue !== null;
+  React.useEffect(() => {
+    warning(
+      isControlled && !hasOnChange && !readOnly,
+      `An '${controlPropName}' prop was provided to ${componentName} without '{}', please provide either '${readOnlyProp}' or '${onChangeProp}'`
+    )
+  }, [componentName, controlPropName, hasOnChange, isControlled, onChangeProp, readOnly, readOnlyProp])
+}
+
 function useToggle({
   initialOn = false,
   reducer = toggleReducer,
@@ -39,20 +64,15 @@ function useToggle({
   const onIsControlled = controlledOn != null;
   const on = onIsControlled ? controlledOn : state.on;
 
-  const { current: previouslyControlled } = React.useRef(onIsControlled);
-  React.useEffect(() => {
-    warning(
-      onIsControlled && !previouslyControlled,
-      "onUseToggle changed from uncontrolled to controlled"
-    )
-  }, [onIsControlled, previouslyControlled])
-
-  React.useEffect(() => {
-    warning(
-      onIsControlled && !onChange && !readOnly,
-      "An 'on' prop was provided to useToggle without 'onChange', please provide either 'readonly' or 'onChange'"
-    )
-  }, [onChange, onIsControlled, readOnly])
+  useControlledSwitchWarning(controlledOn, "on", "useToggle");
+  useOnChangeReadOnlyWarning(controlledOn,
+    "on",
+    "useToggle",
+    Boolean(onChange),
+    readOnly,
+    "readOnly",
+    "initialOn",
+    "onChange")
 
   function dispatchWithOnChange(action) {
     if (!onIsControlled) {
